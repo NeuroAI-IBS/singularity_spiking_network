@@ -1,0 +1,11 @@
+src/x86_64/
+__pycache__/
+.ipynb_checkpoints/
+run_databases/
+results/
+*.pyc
+*.o
+*.so
+*.sif
+.DS_Store
+.agents/

@@ -1,0 +1,17 @@
+[project]
+name = "granular-layer-model"
+version = "1.0.0"
+description = "MF→GrC cerebellar microcircuit (subproject of SingularityCoreNeuron)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "networkx",
+    "compress-pickle",
+]
+
+[project.optional-dependencies]
+plots = ["matplotlib", "pandas"]
+
+[tool.setuptools]
+py-modules = []

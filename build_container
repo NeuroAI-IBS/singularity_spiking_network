@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+
+# Script to build Apptainer/Singularity containers from definition files
+# Usage: build_container [OPTIONS]
+
+set -e  # Exit on error
+
+# Function to display help message
+show_help() {
+    cat << EOF
+Usage: $(basename "$0") [OPTIONS] definition_file
+
+Build Apptainer/Singularity containers from definition files.
+
+OPTIONS:
+    -a, --app-dir DIR       Base application directory (default: \$HOME/containers)
+    -s, --only-sandbox      Build only a sandbox
+    --dry-run               Show only apptainer commands
+    -h, --help              Display this help message and exit
+
+EXAMPLES:
+    # Build using default app directory and eren.def
+    $(basename "$0") /path/to/def_files/eren.def
+
+    # Build using custom app directory and eren.def
+    $(basename "$0") -a /home/user/containers /path/to/def_files/eren.def
+
+DESCRIPTION:
+    This script builds an Apptainer container in two stages:
+    1. Creates a sandbox image from the definition file
+    2. Converts the sandbox to a .sif file
+
+    The container name is extracted from the definition file name (e.g., eren.def -> eren).
+    Output files are created in the images subdirectory of the app directory.
+
+EOF
+}
+
+# Default values
+appDIR="$HOME/containers"
+defFile=""
+onlySandbox=false
+dryRun=false
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -a|--app-dir)
+            appDIR="$2"
+            shift 2
+            ;;
+        -s|--only-sandbox)
+            onlySandbox=true
+            shift
+            ;;
+        --dry-run)
+            dryRun=true
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -*)
+            echo "Error: Unknown option: $1" >&2
+            echo "Use -h or --help for usage information." >&2
+            exit 1
+            ;;
+        *)
+            # Positional argument - treat as definition file
+            defFile="$1"
+            shift
+            ;;
+    esac
+done
+
+# Validate required arguments
+if [[ -z "$defFile" ]]; then
+    echo "Error: Definition file is required." >&2
+    echo "Use -h or --help for usage information." >&2
+    exit 1
+fi
+
+# Check if definition file exists
+if [[ ! -f "$defFile" ]]; then
+    echo "Error: Definition file not found: $defFile" >&2
+    exit 1
+fi
+
+# Extract container name from definition file (e.g., eren.def -> eren)
+containerName=$(basename "$defFile" .def)
+
+# Absolute paths for def file and app dir — Apptainer resolves mount points for
+# APPTAINER_TMPDIR/APPTAINER_CACHEDIR; relative paths often trigger:
+# "failed to find mount point for .../tmp: no parent mount point found"
+defFile=$(realpath "$defFile")
+mkdir -p "$appDIR"
+appDIR=$(cd "$appDIR" && pwd)
+
+# Define subdirectories
+imageDIR="$appDIR/images"
+tmpDIR="$appDIR/tmp"
+cacheDIR="$appDIR/cache"
+
+# Create directories if they don't exist
+mkdir -p "$imageDIR" "$tmpDIR" "$cacheDIR"
+
+# Export environment variables for Apptainer
+export APPTAINER_TMPDIR="$tmpDIR"
+export APPTAINER_CACHEDIR="$cacheDIR"
+
+# Display build information
+echo "========================================"
+echo "Building Apptainer Container"
+echo "========================================"
+echo "Container name:   $containerName"
+echo "Definition file:  $defFile"
+echo "App directory:    $appDIR"
+echo "Image directory:  $imageDIR"
+echo "========================================"
+echo ""
+
+# Build the sandbox image
+echo "Step 1/2: Building sandbox image..."
+sandboxCmd="apptainer build --fix-perms --sandbox \"$imageDIR/$containerName\" \"$defFile\""
+echo "$sandboxCmd"
+
+if [[ "$dryRun" == false ]]; then
+    eval "$sandboxCmd"
+fi
+
+# Convert sandbox to sif (unless only-sandbox is specified)
+if [[ "$onlySandbox" == false ]]; then
+    echo ""
+    echo "Step 2/2: Converting sandbox to .sif file..."
+    sifCmd="apptainer build --fix-perms \"$imageDIR/$containerName.sif\" \"$imageDIR/$containerName\""
+    echo "$sifCmd"
+
+    if [[ "$dryRun" == false ]]; then
+        eval "$sifCmd"
+    fi
+fi
+
+echo ""
+echo "========================================"
+if [[ "$dryRun" == true ]]; then
+    echo "Dry run completed (no builds executed)"
+else
+    echo "Build completed successfully!"
+fi
+echo "Sandbox image: $imageDIR/$containerName"
+if [[ "$onlySandbox" == false ]]; then
+    echo "SIF image:     $imageDIR/$containerName.sif"
+fi
+echo "========================================"

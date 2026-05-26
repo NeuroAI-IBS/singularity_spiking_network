@@ -1,3 +1,14 @@
+# macOS metadata
+.DS_Store
+._*
+
+# NEURON / nrnivmodl build outputs
+x86_64/
+arm64/
+aarch64/
+i686/
+powerpc/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
