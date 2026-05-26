@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: <linux distribution>
+From: nvcr.io/nvidia/nvhpc:<HPCSDK_VERSION>-devel-cuda_multi-ubuntu24.04
 
 %files
 	# Preloaded files from local computer
@@ -12,11 +12,17 @@ From: <linux distribution>
     <local file path>libpmi2.so.0   /lib64/libpmi2.so.0
     <local file path>/libslurm_pmi.so    /usr/lib64/slurm/libslurm_pmi.so
 
-    # NVIDIA HPC SDK installer
-    <local file path>/nvhpc_2025_251_Linux_x86_64_cuda_12.6.tar.gz   /opt/nvhpc_sdk.tar.gz
-
 %post
-    
+    # NVIDIA HPC SDK
+    HPCSDK_VERSION=<HPCSDK_VERSION>
+    CUDA_VERSION=<CUDA_VERSION>
+
+    # Make them available in runtime environment
+    echo "export HPCSDK_VERSION=${HPCSDK_VERSION}" >> $SINGULARITY_ENVIRONMENT
+    echo "export CUDA_VERSION=${CUDA_VERSION}" >> $SINGULARITY_ENVIRONMENT
+
+    echo ">>> Updating system and installing dependencies..."
+    export DEBIAN_FRONTEND=noninteractive
     apt-get update && apt-get upgrade -y
 
     echo ">>> Installing core development tools and libraries..."
@@ -50,6 +56,10 @@ From: <linux distribution>
         vim \
         lsb-release
 
+    echo ">>> Creating compiler symlinks..."
+    ln -s /opt/nvidia/hpc_sdk/Linux_x86_64/${HPCSDK_VERSION}/compilers/bin/nvc /usr/local/bin/nvc
+    ln -s /opt/nvidia/hpc_sdk/Linux_x86_64/${HPCSDK_VERSION}/compilers/bin/nvc++ /usr/local/bin/nvc++
+
     # --- PMI headers symlinks for OpenMPI ---
     ln -sf <local file path>/pmi.h /usr/include/pmi.h
     ln -sf <local file path>/pmi2.h /usr/include/pmi2.h
@@ -69,24 +79,15 @@ From: <linux distribution>
     export LD_LIBRARY_PATH=/opt/openmpi/lib:/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} 
 
     # --- Python venv and modules ---
+    echo ">>> Detecting Python version..."
+    PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    echo ">>> Detected Python version: ${PYTHON_VERSION}"
+    echo "export PYTHON_VERSION=${PYTHON_VERSION}" >> $SINGULARITY_ENVIRONMENT
+
     echo ">>> Creating Python virtual environment at /opt/venv..."
     python3 -m venv /opt/venv
     /opt/venv/bin/pip install --upgrade pip
     /opt/venv/bin/pip install numpy scipy matplotlib pandas networkx scikit-learn sympy wheel setuptools Cython jinja2 lxml pyyaml mpi4py
-
-    # --- NVIDIA HPC SDK install ---
-    echo ">>> Installing NVIDIA HPC SDK 25.1 with CUDA 12.6..."
-    cd /opt
-    tar -xzf nvhpc_sdk.tar.gz
-    mkdir -p /opt/nvidia/hpc_sdk
-    ./nvhpc_2025_251_Linux_x86_64_cuda_12.6/install \
-        -prefix /opt/nvidia/hpc_sdk \
-        -accept-license \
-        -batch
-
-    echo ">>> Creating compiler symlinks..."
-    ln -s /opt/nvidia/hpc_sdk/Linux_x86_64/25.1/compilers/bin/nvc /usr/local/bin/nvc
-    ln -s /opt/nvidia/hpc_sdk/Linux_x86_64/25.1/compilers/bin/nvc++ /usr/local/bin/nvc++
 
     # --- Build and install NEURON with CoreNEURON ---
     echo ">>> Building and installing NEURON with CoreNEURON..."
@@ -97,18 +98,13 @@ From: <linux distribution>
 
     # Set environment variables for NEURON build
     export NVHPC=/opt/nvidia/hpc_sdk
-    export CUDA_HOME=$NVHPC/Linux_x86_64/25.1/cuda/12.6
+    export CUDA_HOME=$NVHPC/Linux_x86_64/${HPCSDK_VERSION}/cuda/${CUDA_VERSION}
     export CUDA_ROOT=$CUDA_HOME
-    export PATH=$NVHPC/Linux_x86_64/25.1/compilers/bin:$CUDA_HOME/bin:/opt/openmpi/bin:$PATH
-    export LD_LIBRARY_PATH=$NVHPC/Linux_x86_64/25.1/compilers/lib:$CUDA_HOME/lib64:/opt/openmpi/lib:/lib64:$LD_LIBRARY_PATH
+    export PATH=$NVHPC/Linux_x86_64/${HPCSDK_VERSION}/compilers/bin:$CUDA_HOME/bin:/opt/openmpi/bin:$PATH
+    export LD_LIBRARY_PATH=$NVHPC/Linux_x86_64/${HPCSDK_VERSION}/compilers/lib:$CUDA_HOME/lib64:/opt/openmpi/lib:/lib64:$LD_LIBRARY_PATH
     export VIRTUAL_ENV=/opt/venv
     export PATH="$VIRTUAL_ENV/bin:$PATH"
-    export PYTHONPATH="$VIRTUAL_ENV/lib/python3.12/site-packages:$PYTHONPATH"
-
-    echo ">>> Cleaning up installer files..."
-    cd /
-    rm -rf /opt/nvhpc_2025_251_Linux_x86_64_cuda_12.6*
-    rm -rf /opt/nvhpc_sdk.tar.gz
+    export PYTHONPATH="$VIRTUAL_ENV/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH"
 
     echo ">>> INSTALLING CORE NEURON..."
     cd /opt/nrn/build
@@ -120,7 +116,7 @@ From: <linux distribution>
         -DCMAKE_INSTALL_PREFIX=/opt/nrn-install \
         -DCMAKE_C_COMPILER=nvc \
         -DCMAKE_CXX_COMPILER=nvc++ \
-        -DCMAKE_CUDA_ARCHITECTURES="90" \
+        -DCMAKE_CUDA_ARCHITECTURES="<CMAKE_CUDA_ARCHITECTURES>" \
         -DCMAKE_CXX_FLAGS="-O3 -g" \
         -DCMAKE_C_FLAGS="-O3 -g" \
         -DCMAKE_BUILD_TYPE=Custom
@@ -148,16 +144,16 @@ From: <linux distribution>
     # Activate Python virtual environment automatically
     export VIRTUAL_ENV=/opt/venv
     export PATH="$VIRTUAL_ENV/bin:$PATH"
-    export PYTHONPATH="$VIRTUAL_ENV/lib/python3.12/site-packages:$PYTHONPATH"
+    export PYTHONPATH="$VIRTUAL_ENV/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH"
 
     # NVIDIA HPC SDK and CUDA environment
     export NVHPC=/opt/nvidia/hpc_sdk
-    export CUDA_HOME=$NVHPC/Linux_x86_64/25.1/cuda/12.6
+    export CUDA_HOME=$NVHPC/Linux_x86_64/${HPCSDK_VERSION}/cuda/${CUDA_VERSION}
     export CUDA_ROOT=$CUDA_HOME
 
     # OpenMPI, NVIDIA, and CUDA in PATH and LD_LIBRARY_PATH
-    export PATH=/opt/nrn-install/bin:/opt/openmpi/bin:$NVHPC/Linux_x86_64/25.1/compilers/bin:$CUDA_HOME/bin:$PATH
-    export LD_LIBRARY_PATH=/opt/nrn-install/lib:/opt/openmpi/lib:$NVHPC/Linux_x86_64/25.1/compilers/lib:$CUDA_HOME/lib64:/lib64:$LD_LIBRARY_PATH
+    export PATH=/opt/nrn-install/bin:/opt/openmpi/bin:$NVHPC/Linux_x86_64/${HPCSDK_VERSION}/compilers/bin:$CUDA_HOME/bin:$PATH
+    export LD_LIBRARY_PATH=/opt/nrn-install/lib:/opt/openmpi/lib:$NVHPC/Linux_x86_64/${HPCSDK_VERSION}/compilers/lib:$CUDA_HOME/lib64:/lib64:$LD_LIBRARY_PATH
     export PYTHONPATH=/opt/nrn-install/lib/python:$PYTHONPATH
     
     export NMODL_PYLIB=$(find /usr/lib /lib /usr/local/lib -name "libpython3.*.so" | grep -m1 -E "libpython3\.[0-9]+\.so") 
