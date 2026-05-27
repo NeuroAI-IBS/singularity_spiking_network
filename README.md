@@ -61,27 +61,14 @@ When adapting a `.def` file for a new machine, check these items carefully:
 Use `def_files/local.def.template` when the image will run on a local workstation or a machine that does not require host SLURM PMI libraries inside the container.
 
 1. Copy the template:
-
 ```bash
 cp def_files/local.def.template def_files/my_workstation.def
 ```
-
-1. Edit the NVIDIA HPC SDK installer line in `%files`:
-
-```text
-/path/to/nvhpc_2025_255_Linux_x86_64_cuda_12.9.tar.gz /opt/nvhpc_sdk.tar.gz
-```
-
-1. Set the CUDA/NVHPC paths and `CMAKE_CUDA_ARCHITECTURES` for your GPU.
-
-1. Build the image:
-
+2. Build the image:
 ```bash
 ./build_container def_files/my_workstation.def
 ```
-
 This creates:
-
 ```text
 $HOME/containers/images/my_workstation/
 $HOME/containers/images/my_workstation.sif
@@ -97,7 +84,7 @@ Use `def_files/hpc.def.template` when running MPI jobs through SLURM on an HPC c
 srun --mpi=list
 ```
 
-1. Locate the PMI/SLURM headers and libraries on the cluster:
+2. Locate the PMI/SLURM headers and libraries on the cluster:
 
 ```bash
 find /usr/include /usr/local/include -name 'pmi*.h'
@@ -105,7 +92,7 @@ find /lib64 /usr/lib64 /usr/local/lib64 -name 'libpmi*.so*'
 find /usr/lib64/slurm /usr/local/lib64 -name 'libslurm_pmi.so*'
 ```
 
-1. Copy the required files into a local staging directory on the build machine, for example:
+3. Copy the required files into a local staging directory on the build machine, for example:
 
 ```text
 slurm-pmi-for-container/
@@ -120,13 +107,13 @@ slurm-pmi-for-container/
     └── libslurm_pmi.so
 ```
 
-1. Copy the template:
+4. Copy the template:
 
 ```bash
 cp def_files/hpc.def.template def_files/my_cluster.def
 ```
 
-1. In `%files`, uncomment and edit the PMI paths so they point at your staging directory, then edit the NVIDIA HPC SDK installer path:
+5. In `%files`, uncomment and edit the PMI paths so they point at your staging directory, then edit the NVIDIA HPC SDK installer path:
 
 ```text
 /path/to/slurm-pmi-for-container/include/pmi.h /usr/include/slurm/pmi.h
@@ -136,17 +123,15 @@ cp def_files/hpc.def.template def_files/my_cluster.def
 /path/to/slurm-pmi-for-container/lib64/libpmi2.so /lib64/libpmi2.so
 /path/to/slurm-pmi-for-container/lib64/libpmi2.so.0 /lib64/libpmi2.so.0
 /path/to/slurm-pmi-for-container/lib64/libslurm_pmi.so /usr/lib64/slurm/libslurm_pmi.so
-/path/to/nvhpc_2025_251_Linux_x86_64_cuda_12.6.tar.gz /opt/nvhpc_sdk.tar.gz
 ```
 
-1. Confirm OpenMPI is configured with PMI support:
+6. Confirm OpenMPI is configured with PMI support:
 
 ```text
 ./configure --prefix=/opt/openmpi --with-pmi=/usr --with-pmi-libdir=/lib64
 ```
 
-1. Set `CMAKE_CUDA_ARCHITECTURES` for the cluster GPUs and build:
-
+7. Set `CMAKE_CUDA_ARCHITECTURES` for the cluster GPUs and build:
 ```bash
 ./build_container def_files/my_cluster.def
 ```
@@ -178,12 +163,10 @@ Options:
 The script runs two stages:
 
 1. Build a sandbox:
-
 ```bash
 apptainer build --fix-perms --sandbox "$APP_DIR/images/name" def_files/name.def
 ```
-
-1. Convert the sandbox to a `.sif` image unless `--only-sandbox` is used:
+2. Convert the sandbox to a `.sif` image unless `--only-sandbox` is used:
 
 ```bash
 apptainer build --fix-perms "$APP_DIR/images/name.sif" "$APP_DIR/images/name"
@@ -225,6 +208,7 @@ After building a container, see [`GranularLayerModel/README.md`](GranularLayerMo
 - [NVIDIA HPC SDK](https://developer.nvidia.com/hpc-sdk)
 - [OpenMPI Documentation](https://www.open-mpi.org/doc/)
 
-## License
+---
+*Written by Oliver James and Sungho Hong, Center for Memory and Glioscience, Institute for Basic Science*
 
-This project is licensed under the MIT License. See [`LICENSE`](LICENSE).
+*May 2026*
