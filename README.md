@@ -31,9 +31,7 @@ The files in `def_files/` are intentionally environment-specific. Start from the
 | --- | --- |
 | `local.def.template` | Local workstation template. It builds OpenMPI inside the container without copying host PMI files. Edit the NVIDIA HPC SDK installer path and CUDA architecture. |
 | `hpc.def.template` | HPC template with commented `%files` lines for host PMI libraries. Use this when the cluster requires SLURM PMI compatibility. |
-| `HPCtemplate.def` | Older placeholder-style HPC template using `<local file path>` markers. Keep as a reference, but prefer `hpc.def.template` for new systems. |
 | `olaf.def` | Concrete Olaf/IBS HPC example with copied SLURM PMI files and NVIDIA HPC SDK 25.1 / CUDA 12.6. |
-| `eren.def` | Concrete workstation-style example based on NVIDIA's NVHPC Docker image, with CUDA architecture `75`. |
 | `levi.def` | Concrete Titan V example using NVIDIA HPC SDK 25.5 / CUDA 12.9, with CUDA architecture `70`. |
 
 ## Writing a Definition File
@@ -176,7 +174,7 @@ Examples:
 
 ```bash
 # Build with default output directory.
-./build_container def_files/eren.def
+./build_container def_files/levi.def
 
 # Build under a custom directory.
 ./build_container -a /scratch/$USER/containers def_files/my_cluster.def

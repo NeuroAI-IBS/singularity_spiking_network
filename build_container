@@ -19,18 +19,18 @@ OPTIONS:
     -h, --help              Display this help message and exit
 
 EXAMPLES:
-    # Build using default app directory and eren.def
-    $(basename "$0") /path/to/def_files/eren.def
+    # Build using default app directory and levi.def
+    $(basename "$0") /path/to/def_files/levi.def
 
-    # Build using custom app directory and eren.def
-    $(basename "$0") -a /home/user/containers /path/to/def_files/eren.def
+    # Build using custom app directory and levi.def
+    $(basename "$0") -a /home/user/containers /path/to/def_files/levi.def
 
 DESCRIPTION:
     This script builds an Apptainer container in two stages:
     1. Creates a sandbox image from the definition file
     2. Converts the sandbox to a .sif file
 
-    The container name is extracted from the definition file name (e.g., eren.def -> eren).
+    The container name is extracted from the definition file name (e.g., levi.def -> levi).
     Output files are created in the images subdirectory of the app directory.
 
 EOF
@@ -87,7 +87,7 @@ if [[ ! -f "$defFile" ]]; then
     exit 1
 fi
 
-# Extract container name from definition file (e.g., eren.def -> eren)
+# Extract container name from definition file (e.g., levi.def -> levi)
 containerName=$(basename "$defFile" .def)
 
 # Absolute paths for def file and app dir — Apptainer resolves mount points for

@@ -5,6 +5,7 @@ From: nvcr.io/nvidia/nvhpc:25.5-devel-cuda_multi-ubuntu24.04
     # NVIDIA HPC SDK
     HPCSDK_VERSION=25.5
     CUDA_VERSION=12.9
+    NEURON_VERSION=8.2.7
 
     # Make them available in runtime environment
     echo "export HPCSDK_VERSION=${HPCSDK_VERSION}" >> $SINGULARITY_ENVIRONMENT
@@ -56,13 +57,13 @@ From: nvcr.io/nvidia/nvhpc:25.5-devel-cuda_multi-ubuntu24.04
     wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.6.tar.gz
     tar xzf openmpi-4.1.6.tar.gz
     cd openmpi-4.1.6
-    ./configure --prefix=/opt/openmpi 
+    ./configure --prefix=/opt/openmpi
     make -j12
     make install
 
     # Set up environment for rest of the build
     export PATH=/opt/openmpi/bin:$PATH
-    export LD_LIBRARY_PATH=/opt/openmpi/lib:/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} 
+    export LD_LIBRARY_PATH=/opt/openmpi/lib:/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 
     # --- Python venv and modules ---
     echo ">>> Detecting Python version..."
@@ -78,11 +79,12 @@ From: nvcr.io/nvidia/nvhpc:25.5-devel-cuda_multi-ubuntu24.04
     # --- Build and install NEURON with CoreNEURON ---
     echo ">>> Building and installing NEURON with CoreNEURON..."
     cd /opt
-    git clone https://github.com/neuronsimulator/nrn.git    
-    # Download and extract NEURON 8.2.6 source tarball using wget
-    #wget https://github.com/neuronsimulator/nrn/releases/download/8.2.6/nrn-full-src-package-8.2.6.tar.gz
-    #tar -xvzf nrn-full-src-package-8.2.6.tar.gz
-    cd nrn 
+    # Download and extract NEURON source tarball at pinned version
+    wget https://github.com/neuronsimulator/nrn/releases/download/${NEURON_VERSION}/nrn-full-src-package-${NEURON_VERSION}.tar.gz
+    tar -xvzf nrn-full-src-package-${NEURON_VERSION}.tar.gz
+    mv nrn-${NEURON_VERSION} nrn
+    rm nrn-full-src-package-${NEURON_VERSION}.tar.gz
+    cd nrn
     mkdir build
 
     # Set environment variables for NEURON build
@@ -97,6 +99,9 @@ From: nvcr.io/nvidia/nvhpc:25.5-devel-cuda_multi-ubuntu24.04
 
     echo ">>> INSTALLING CORE NEURON..."
     cd /opt/nrn/build
+    # EDIT: set CMAKE_CUDA_ARCHITECTURES to your GPU compute capability.
+    # Examples: 70 = Titan V / V100, 75 = Turing (RTX 20xx, T4),
+    #           80 = A100, 86 = RTX 30xx, 89 = RTX 40xx, 90 = H100.
     cmake .. \
         -DNRN_ENABLE_CORENEURON=ON \
         -DCORENRN_ENABLE_GPU=ON \
@@ -115,40 +120,40 @@ From: nvcr.io/nvidia/nvhpc:25.5-devel-cuda_multi-ubuntu24.04
 
     export PATH=/opt/nrn-install/bin:$PATH
     export PYTHONPATH=/opt/nrn-install/lib/python:$PYTHONPATH
-    
+
     # --- Automatically detect and export NMODL_PYLIB ---
     PYLIB=$(find /usr/lib /lib /usr/local/lib -name "libpython3.*.so" | grep -m1 -E "libpython3\.[0-9]+\.so")
     export NMODL_PYLIB=$PYLIB
-    echo ">>> NMODL_PYLIB set to: $NMODL_PYLIB" 
-    
+    echo ">>> NMODL_PYLIB set to: $NMODL_PYLIB"
+
 
     # --- Make persistent in container environment ---
     echo "export NMODL_PYLIB=$NMODL_PYLIB" >> $SINGULARITY_ENVIRONMENT
     echo "export NMODLHOME=/opt/nrn-install" >> $SINGULARITY_ENVIRONMENT
-    
+
     #export NMODL_PYLIB=/usr/lib/x86_64-linux-gnu/libpython3.12.so  # This was obtained after it sandbox check
-    
+
     rm -rf /opt/openmpi-4.1.6
     rm -rf /opt/nrn
-     
+
 
 %environment
     # Activate Python virtual environment automatically
     export VIRTUAL_ENV=/opt/venv
     export PATH="$VIRTUAL_ENV/bin:$PATH"
-    export PYTHONPATH="$VIRTUAL_ENV/lib/python3.12/site-packages:$PYTHONPATH"
+    export PYTHONPATH="$VIRTUAL_ENV/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH"
 
     # NVIDIA HPC SDK and CUDA environment
     export NVHPC=/opt/nvidia/hpc_sdk
-    export CUDA_HOME=$NVHPC/Linux_x86_64/25.5/cuda/12.9
+    export CUDA_HOME=$NVHPC/Linux_x86_64/${HPCSDK_VERSION}/cuda/${CUDA_VERSION}
     export CUDA_ROOT=$CUDA_HOME
 
     # OpenMPI, NVIDIA, and CUDA in PATH and LD_LIBRARY_PATH
-    export PATH=/opt/nrn-install/bin:/opt/openmpi/bin:$NVHPC/Linux_x86_64/25.5/compilers/bin:$CUDA_HOME/bin:$PATH
-    export LD_LIBRARY_PATH=/opt/nrn-install/lib:/opt/openmpi/lib:$NVHPC/Linux_x86_64/25.5/compilers/lib:$CUDA_HOME/lib64:/lib64:$LD_LIBRARY_PATH
+    export PATH=/opt/nrn-install/bin:/opt/openmpi/bin:$NVHPC/Linux_x86_64/${HPCSDK_VERSION}/compilers/bin:$CUDA_HOME/bin:$PATH
+    export LD_LIBRARY_PATH=/opt/nrn-install/lib:/opt/openmpi/lib:$NVHPC/Linux_x86_64/${HPCSDK_VERSION}/compilers/lib:$CUDA_HOME/lib64:/lib64:$LD_LIBRARY_PATH
     export PYTHONPATH=/opt/nrn-install/lib/python:$PYTHONPATH
-    
-    export NMODL_PYLIB=$(find /usr/lib /lib /usr/local/lib -name "libpython3.*.so" | grep -m1 -E "libpython3\.[0-9]+\.so") 
+
+    export NMODL_PYLIB=$(find /usr/lib /lib /usr/local/lib -name "libpython3.*.so" | grep -m1 -E "libpython3\.[0-9]+\.so")
     export NMODLHOME=/opt/nrn-install
 
 %labels
