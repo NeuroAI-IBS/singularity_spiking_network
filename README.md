@@ -199,6 +199,10 @@ After building a container, see [`GranularLayerModel/README.md`](GranularLayerMo
 - If GPU compilation fails, check that `CMAKE_CUDA_ARCHITECTURES` matches the target GPU and that `CUDA_HOME` points at the CUDA version installed by NVHPC.
 - If `nrnivmodl` or Python imports fail at runtime, inspect `%environment` and confirm `PATH`, `LD_LIBRARY_PATH`, `PYTHONPATH`, `NMODLHOME`, and `NMODL_PYLIB` match the paths created in `%post`.
 
+## License
+
+This project is licensed under the [GNU General Public License v3.0 or later](LICENSE).
+
 ## References
 
 - [CoreNEURON Documentation](https://github.com/BlueBrain/CoreNeuron)

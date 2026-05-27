@@ -3,6 +3,7 @@ name = "granular-layer-model"
 version = "1.0.0"
 description = "MF→GrC cerebellar microcircuit (subproject of SingularityCoreNeuron)"
 readme = "README.md"
+license = "GPL-3.0-or-later"
 requires-python = ">=3.10"
 dependencies = [
     "numpy",

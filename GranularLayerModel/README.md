@@ -54,6 +54,10 @@ singularity exec --nv "$SIF" \
   -tstop 1000 -runtype coreneuron_gpu
 ```
 
+## License
+
+This subproject is licensed under the [GNU General Public License v3.0 or later](../LICENSE).
+
 ## References
 
 If you use this code or the container, please cite:
