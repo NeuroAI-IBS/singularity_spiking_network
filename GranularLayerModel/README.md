@@ -4,7 +4,7 @@ A large-scale, biologically grounded model of the cerebellar mossy-fibre → gra
 
 It accompanies the manuscript
 
-> O. James and S. Hong (2026) *Container-Based Framework for Large-Scale Computational Neuroscience*, IBS, 2026.
+> O. James and S. Hong (2026) Container-Based Framework for Large-Scale Spiking Network Simulation, *submitted*.
 
 The container image (`*.sif`) is built from the `.def` files in `../def_files/` using `../build_container`; see the parent's `[README.md](../README.md)` for the full installation guide and HPC configuration notes. Once the image is built, this subproject supplies the model code, the EM-derived connectivity database, and a small set of helpers to scale it.
 
@@ -15,7 +15,7 @@ The container image (`*.sif`) is built from the `.def` files in `../def_files/` 
 | --------------- | ------- |
 | `src/`| The simulation code: cell models, network driver, NEURON MOD files. Runs *inside* the container.|
 | `scripts/` | Host-side helper(s); currently just `scale_db.py`, which replicates the bundled connectivity database N times.|
-| `connectivity/` | The bundled connectivity database (`mf_grc.db`, 1070 MF + 3925 GrC; 4995 cells total) derived from the EM reconstruction of [Nguyen et al. 2023](https://github.com/htem/cb2_project_analysis). This is shipped as a data artifact and is not rebuilt at release time; provenance details are in `connectivity/README.md`. |
+| `connectivity/` | The bundled connectivity database (`mf_grc.db`, 1070 MF + 3925 GrC; 4995 cells total) derived from the EM reconstruction of [Nguyen et al. 2023](https://github.com/htem/cb2_project_analysis). This is shipped as a data artifact. |
 | `tests/`| A 50-ms smoke test used by CI.|
 
 
@@ -58,7 +58,12 @@ singularity exec --nv "$SIF" \
 
 If you use this code or the container, please cite:
 
-- James O. & Hong S. (2026). *Container-Based Framework for Large-Scale Computational Neuroscience.* IBS, Daejeon, Korea. (See the parent repository's `CITATION.cff`.)
-- Nguyen et al. (2023). *Electron-microscopy reconstruction of the cerebellar granule-cell layer.* (See `connectivity/README.md`.)
-- Sudhakar et al. (2017). *Spatiotemporal patterns of granule-cell activity in the cerebellar cortex.* (Channel-mechanism source.)
+- O. James and S. Hong (2026) Container-Based Framework for Large-Scale Spiking Network Simulation, *submitted*.
+- Nguyen et al. (2023) Structured cerebellar connectivity supports resilient pattern separation. Nature *613*, 543-9. (connectivity)
+- Sudhakar et al. (2017). Spatiotemporal network coding of physiological mossy fiber inputs by the cerebellar granular layer. PLOS Comput Biol, *13*, e1005754. (cell models)
 
+
+---
+*Written by Oliver James and Sungho Hong, Center for Memory and Glioscience, Institute for Basic Science*
+
+*May 2026*
